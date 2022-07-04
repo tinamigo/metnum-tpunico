@@ -3,7 +3,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import KFold
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
-from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import f1_score
 import pandas as pd
 import numpy as np
 
@@ -28,11 +28,8 @@ def tests_KFolds(k, K, alfa, trainpath):
 
     #Para cada fold se hara un entrenamiento, prediccion y se guardara el accuracity y el tiempo que dio cada uno
     Accuracities = []
-    Times = []
-    cm=np.zeros((10,10))
-    Precision=[]
-    Recall=[]
     F_Score=[]
+
     for train_index, test_index in kfold.split(X):
         # separo train y test para este fold
         X_train, X_test = X[train_index], X[test_index]
@@ -49,20 +46,25 @@ def tests_KFolds(k, K, alfa, trainpath):
         #Se ve el accuracity de lo predicho
         acc = accuracy_score(y_test, y_pred)
         Accuracities.append(acc)
-        cm = cm + confusion_matrix(y_test,y_pred,labels=[u for u in range(10)])
-        other_metrics=precision_recall_fscore_support(y_test,y_pred,labels=[u for u in range(10)])
-        Precision.append(other_metrics[0])
-        Recall.append(other_metrics[1])
-        F_Score.append(other_metrics[2])
+        fscore = f1_score(y_test,y_pred,labels=[u for u in range(10)], average= 'macro')
+        F_Score.append(fscore)
 
     Accuracities = np.asarray(Accuracities)
-    Times = np.asarray(Times)
-    return [np.mean(Accuracities),np.mean(Times),np.mean(Precision),np.mean(Recall),np.mean(F_Score),cm]
+    return np.mean(Accuracities),np.mean(F_Score)
 
-k = 5
 K = 6
-alfa = 10
-results = tests_KFolds(k, K, alfa, 'data/fashion-mnist_all.csv')
+results = pd.DataFrame(columns = ['k','alfa','acc','fscore'])
+for k in range(5,7):
+    print("k: ", k)
+    for i in range(2,15):
+        alfa = i*10
+        print("  Alfa: ", alfa)
+        acc, fscore = tests_KFolds(k, K, alfa, 'data/fashion-mnist_all.csv')
+        print("-acc: ", acc)
+        new_row = {'k':k,'alfa':alfa,'acc':acc,'fscore':fscore}
+        results = results.append(new_row,ignore_index=True)
+
 print(results)
-with open( 'log.txt', 'w') as file:
-    print(results, file = file)
+results.to_csv('results2.csv')
+
+#max 0.8587999883405649
